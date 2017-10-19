@@ -1,122 +1,179 @@
 #pragma once
-#include <functional>
-#include <vector>
+#include <math.h>
 
-template<class T, int n>
-struct Vec {
-    std::vector<T> val;
+template <typename T, int size>
+struct Vector
+{
+    T &x;
+    T &y;
+    T &z;
+    T vals[size] = {};
 
-    Vec() = default;
-
-    Vec(std::vector<T> val) : val{ val } {
-
+    Vector() : x(vals[0]), y(vals[1]), z(vals[2])
+    {
     }
 
-    Vec& operator+(Vec& rhs) {
-        return c().add(rhs);
+    Vector(T x, T y) : x(vals[0]), y(vals[1]), z(vals[2])
+    {
+        vals[0] = x;
+        vals[1] = y;
     }
 
-    Vec& operator+=(Vec& rhs) {
-        return add(rhs);
+    Vector(T x, T y, T z) : x(vals[0]), y(vals[1]), z(vals[2])
+    {
+        vals[0] = x;
+        vals[1] = y;
+        vals[2] = z;
     }
 
-    Vec& add(Vec& v) {
-        iterate([&](int i) {val[i] += v.val[i]; });
+    Vector(const Vector &other) : x(vals[0]), y(vals[1]), z(vals[2])
+    {
+        memcpy(vals, other.vals, sizeof vals);
+    }
+
+    Vector &operator=(Vector &other)
+    {
+        memcpy(vals, other.vals, sizeof vals);
         return *this;
     }
 
-    Vec& sub(Vec& v) {
-        iterate([&](int i) {val[i] -= v.val[i]; });
+    Vector &add(const Vector &other)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            vals[i] += other.vals[i];
+        }
         return *this;
     }
 
-    Vec& scale(float& s) {
-        iterate([&](int i) {val[i] *= s; });
+    Vector &sub(const Vector &other)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            vals[i] -= other.vals[i];
+        }
         return *this;
     }
 
-    Vec& normalize() {
-        return scale(1 / length())
+    Vector &scale(float scalar)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            vals[i] *= scalar;
+        }
+        return *this;
     }
 
-    float length() {
+    T dot(const Vector &other) const
+    {
         T sum = 0;
-        iterate([&](int i) {sum += val[i] * val[i]; });
-        return (float)pow(sum, 0.5);
-    }
-
-    Vec& lerp(Vec& v, float weight) {
-        return c().add(v.c().sub(*this).scale(weight));
-    }
-
-    T dot(Vec& v) {
-        T sum = 0;
-        iterate([&](int i) {sum += get(i) * v.get(i); });
+        for (int i = 0; i < size; i++)
+        {
+            sum += vals[i] * other.vals[i];
+        }
         return sum;
     }
 
-    T& get(int i) {
-        return val[i];
+    Vector cross(const Vector &other)
+    {
+        return Vector(
+            y * other.z - z * other.y,
+            z * other.x - x * other.z,
+            x * other.y - y * other.x);
     }
 
-    void set(int i, T val) {
-        val[i] = val;
+    Vector &normalise()
+    {
+        return scale(1 / length());
     }
 
-    T& x() {
-        return val[0];
-    }
-
-    T& y() {
-        return val[1];
-    }
-
-    T& z() {
-        return val[2];
-    }
-
-    Vec c() {
-        return Vec<T, n>(val);
-    }
-
-    bool operator ==(Vec& rhs) {
-        for (int i = 0; i < n; i++) {
-            if (rhs[i] != val[i]) {
-                return false;
-            }
+    float length()
+    {
+        float sum = 0;
+        for (int i = 0; i < size; i++)
+        {
+            sum += vals[i] * vals[i];
         }
-        return true;
+        return pow(sum, 0.5);
     }
 
-    T& operator[] (int i) {
-        return val[i];
+    Vector lerp(const Vector &other, float weight)
+    {
+        return c().add(other.c().sub(*this).scale(weight));
     }
 
-    void iterate(std::function<void(int)> callback) {
-        for (int i = 0; i < n; i++) {
-            callback(i);
+    Vector c() const
+    {
+        return *this;
+    }
+
+    T &operator[](int index)
+    {
+        return vals[index];
+    }
+
+    Vector &rotX(float t)
+    {
+        float cost = cosf(t);
+        float sint = sinf(t);
+        T xp = x;
+        T yp = y * cost - z * sint;
+        T zp = y * sint + z * cost;
+        x = xp;
+        y = yp;
+        z = zp;
+        return *this;
+    }
+
+    Vector &rotY(float t)
+    {
+        float cost = cosf(t);
+        float sint = sinf(t);
+        T xp = x * cost + z * sint;
+        T yp = y;
+        T zp = -x * sint + z * cost;
+        x = xp;
+        y = yp;
+        z = zp;
+        return *this;
+    }
+
+    Vector &rotZ(float t)
+    {
+        float cost = cosf(t);
+        float sint = sinf(t);
+        T xp = x * cost - y * sint;
+        T yp = x * sint + y * cost;
+        T zp = z;
+        x = xp;
+        y = yp;
+        z = zp;
+        return *this;
+    }
+
+    Vector<int, size> round()
+    {
+        Vector<int, size> v;
+        for (int i = 0; i < size; i++)
+        {
+            v[i] = std::round(vals[i]);
         }
+        return v;
     }
 
-    //void loop(std::function<void(Vec&)> callback) {
-    //  int counters[n];
-    //  callback(counters)
-    //  var i = 0;
-    //  outerLoop:
-    //  while (true) {
-    //      while (counters[i] == this.get(i)) {
-    //          counters[i] = 0;
-    //          i++;
-    //          if (i == counters.length) break outerLoop;
-    //      }
-    //      counters[i]++;
-    //      callback(counters)
-    //          i = 0;
-    //  }
-    //}
+    template <int newsize>
+    Vector<T, newsize> resize()
+    {
+        Vector<T, newsize> v;
+        for (int i = 0; i < newsize; i++)
+        {
+            v[i] = vals[i];
+        }
+        return v;
+    }
 };
 
-typedef Vec<int, 2> V2i;
-typedef Vec<float, 2> V2f;
-typedef Vec<int, 3> V3i;
-typedef Vec<float, 3> V3f;
+typedef Vector<int, 2> V2i;
+typedef Vector<float, 2> V2f;
+typedef Vector<int, 3> V3i;
+typedef Vector<float, 3> V3f;
