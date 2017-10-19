@@ -1,5 +1,6 @@
 #pragma once
 #include <math.h>
+#include <functional>
 
 template <typename T, int size>
 struct Vector
@@ -171,6 +172,33 @@ struct Vector
         }
         return v;
     }
+    
+    void loop(std::function<void(Vector)> callback) {
+		Vector scratch;
+		callback(scratch);
+		while (!scratch.incr(*this)) {
+			callback(scratch);
+		}
+	}
+
+	bool incr(Vector& base) {
+		int carry = 0;
+		vals[size - 1]++;
+
+		for (int i = size - 1; i >= 0; i--) {
+			int result = vals[i] + carry;
+
+			if (result >= base[i]) {
+				vals[i] = 0;
+				carry = 1;
+			} else {
+				vals[i] = result;
+				carry = 0;
+				return false;
+			}
+		}
+		return true;
+	}
 };
 
 typedef Vector<int, 2> V2i;
